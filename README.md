@@ -1,1 +1,1 @@
-[Переглянути документацію](docs/index.html)
+[PI_NumericalIntegration](docs/index.html)
