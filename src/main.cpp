@@ -3,7 +3,7 @@
 #include <vector>
 #include <chrono>
 #include <cmath>
-#include <atomic>
+#include <mutex>
 
 // Функція для обчислення часткового інтегралу
 double calculate_integral_segment(int start, int end, int total_intervals) {
@@ -17,9 +17,12 @@ double calculate_integral_segment(int start, int end, int total_intervals) {
 }
 
 // Функція для виконання обчислень на кожному потоці
-void compute_pi_segment(int start, int end, int total_intervals, std::atomic<double>& result) {
+void compute_pi_segment(int start, int end, int total_intervals, double& result, std::mutex& result_mutex) {
     double segment_sum = calculate_integral_segment(start, end, total_intervals);
-    result.fetch_add(segment_sum, std::memory_order_relaxed);
+    
+    // Захист доступу до результату
+    std::lock_guard<std::mutex> lock(result_mutex);
+    result += segment_sum;
 }
 
 int main() {
@@ -27,7 +30,8 @@ int main() {
     const int num_threads = 4;            // Кількість потоків
 
     std::vector<std::thread> threads;
-    std::atomic<double> pi(0.0); // Використовуємо атомарну змінну для безпечного доступу
+    double pi = 0.0;  // Результат обчислення числа PI
+    std::mutex result_mutex;  // М'ютекс для захисту доступу до результату
 
     auto start_time = std::chrono::high_resolution_clock::now();
 
@@ -35,7 +39,7 @@ int main() {
     for (int t = 0; t < num_threads; ++t) {
         int start = t * intervals_per_thread;
         int end = (t == num_threads - 1) ? num_intervals : (t + 1) * intervals_per_thread;
-        threads.emplace_back(compute_pi_segment, start, end, num_intervals, std::ref(pi));
+        threads.emplace_back(compute_pi_segment, start, end, num_intervals, std::ref(pi), std::ref(result_mutex));
     }
 
     for (auto& thread : threads) {
@@ -48,7 +52,7 @@ int main() {
     auto end_time = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end_time - start_time;
 
-    std::cout << "Liczba PI: " << pi.load() << std::endl;
+    std::cout << "Liczba PI: " << pi << std::endl;
     std::cout << "Czas: " << elapsed.count() << " sekund" << std::endl;
 
     return 0;
