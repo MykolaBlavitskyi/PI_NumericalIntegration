@@ -1,1 +1,1 @@
-[PI_NumericalIntegration](docs/index.html)
+[PI_NumericalIntegration](https://mykolablavitskyi.github.io/PI_NumericalIntegration/docs/html/index.html)
